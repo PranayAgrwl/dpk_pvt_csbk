@@ -57,3 +57,48 @@ code {
 .trx-combo-list .list-group-item.active .text-muted {
     color: rgba(255, 255, 255, 0.85) !important;
 }
+
+/* ---- Trx page: table + drag-handle visuals ------------------------- */
+.trx-table td.drag-handle {
+    cursor: grab;
+    user-select: none;
+}
+.trx-table td.drag-handle:active {
+    cursor: grabbing;
+}
+.trx-table td.drag-handle .drag-grip {
+    display: inline-block;
+    color: #adb5bd;
+    font-weight: 700;
+    letter-spacing: -2px;
+    transform: rotate(0deg);
+}
+.trx-table tr:hover td.drag-handle .drag-grip {
+    color: #6c757d;
+}
+/* SortableJS visual states while a row is being dragged. */
+.trx-row-ghost  { opacity: .25; background: #cfe2ff; }
+.trx-row-chosen { background: #f8f9fa; }
+.trx-row-drag   { box-shadow: 0 4px 14px rgba(0,0,0,.12); }
+
+/* ---- Trx edit modal: read-only balance summary panel ---------------
+   Keeps the two informational figures visually distinct from the
+   editable inputs above, so it's immediately obvious which fields
+   you can/can't touch. */
+.trx-balance-summary {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+}
+.trx-balance-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: #6c757d;
+    font-weight: 600;
+}
+.trx-balance-value {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: #212529;
+    font-variant-numeric: tabular-nums;
+}

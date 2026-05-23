@@ -36,7 +36,12 @@ $router->post('/master/store',         [MasterController::class, 'store']  )->mi
 $router->post('/master/{id}/update',   [MasterController::class, 'update'] )->middleware('auth');
 $router->post('/master/{id}/delete',   [MasterController::class, 'destroy'])->middleware('auth');
 
-// ---------- Trx module (cashbook transactions) — CREATE step ----------
-// (Read / update / delete routes will be added in the next step per the bible.)
-$router->get( '/trx/create',           [TrxController::class,    'create'] )->middleware('auth');
-$router->post('/trx/store',            [TrxController::class,    'store']  )->middleware('auth');
+// ---------- Trx module (cashbook transactions) ----------
+// Read + Update + Delete + drag-reorder live on /trx (AJAX-driven table).
+// Create has its own form page at /trx/create.
+$router->get( '/trx',                  [TrxController::class,    'index']   )->middleware('auth');
+$router->get( '/trx/create',           [TrxController::class,    'create']  )->middleware('auth');
+$router->post('/trx/store',            [TrxController::class,    'store']   )->middleware('auth');
+$router->post('/trx/{id}/update',      [TrxController::class,    'update']  )->middleware('auth');
+$router->post('/trx/{id}/delete',      [TrxController::class,    'destroy'] )->middleware('auth');
+$router->post('/trx/{id}/reorder',     [TrxController::class,    'reorder'] )->middleware('auth');

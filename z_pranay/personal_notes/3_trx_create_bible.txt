@@ -53,3 +53,6 @@ make sure the page is secure - and prevent sql injection and all that
 - read complete rest of web app you have complete access here and read it all
 - bootstrap and jquery
 - also read all of my notes as well to better understand the style
+
+--
+all entries stored in uppercase - in mysql database

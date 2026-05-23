@@ -1,0 +1,26 @@
+we have - read update delete operation in trx table data
+-
+(all in uppercase in mysql)
+(bootstrap + jquery + ajax)
+-
+we have page - that shows all entries in descending order of trx id
+using java script - data tables - for faster manipulation and seeing data
+-
+show - table
+1. trx_id (ability to drag and update trx id here - if i drag some id to number 3 - the current number 3 and all other move trx_id +1)(via ajax i suppose)
+2. trx_date
+3. master
+4. cr
+5. dr
+6. remark
+7. running balance - (of cash book)
+8. edit
+9. delete (if entry from between deleted - all entries below it move trx_id -1)
+
+(update - updated_at column in mysql)
+
+--- when i press edit
+- it opens modal - shows previous data - editable - [date, master id (similar dropdown as add), cr, dr, remark, show current balance and show updated balance (just like add trx)] - i click save - it saves and shows via ajax
+--- when i press delete
+- it asks confirmation popup like in master delete - it saves and shows via ajax
+

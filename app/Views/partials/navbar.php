@@ -42,7 +42,14 @@
                     <a class="nav-link text-white <?= $isActive('/master') ?>" href="<?= $e($url('/master')) ?>">Master</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link text-white <?= $isActive('/trx') ?>" href="<?= $e($url('/trx/create')) ?>">New Trx</a>
+                    <a class="nav-link text-white <?= $isActive('/trx/create') ?>"
+                       href="<?= $e($url('/trx/create')) ?>">New Trx</a>
+                </li>
+                <li class="nav-item">
+                    <!-- "Trx" = the table page (R+U+D). Exact-match so it
+                         doesn't also light up on /trx/create. -->
+                    <a class="nav-link text-white <?= $reqPath === '/trx' ? 'active fw-semibold' : '' ?>"
+                       href="<?= $e($url('/trx')) ?>">Trx List</a>
                 </li>
             </ul>
 

@@ -107,4 +107,40 @@ class Database
     {
         return self::pdo()->lastInsertId();
     }
+
+    /**
+     * Run a callback inside a DB transaction.
+     *
+     *   Database::transaction(function () {
+     *       // ... queries that should commit/rollback atomically ...
+     *   });
+     *
+     * On any thrown exception the transaction is rolled back and the exception
+     * is re-thrown (so the caller / global handler can decide how to surface it).
+     * Nested calls (transaction-in-transaction) just run inline — MySQL doesn't
+     * support real nesting; this keeps the helper safe to compose.
+     *
+     * @template T
+     * @param callable():T $callback
+     * @return T
+     */
+    public static function transaction(callable $callback): mixed
+    {
+        $pdo = self::pdo();
+
+        // Already inside a transaction? Just run the callback (no nested BEGIN).
+        if ($pdo->inTransaction()) {
+            return $callback();
+        }
+
+        $pdo->beginTransaction();
+        try {
+            $result = $callback();
+            $pdo->commit();
+            return $result;
+        } catch (\Throwable $e) {
+            $pdo->rollBack();
+            throw $e;
+        }
+    }
 }

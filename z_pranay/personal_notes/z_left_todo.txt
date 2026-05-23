@@ -1,5 +1,0 @@
-PAGES
-1. trx -> add
-2. trx -> table + live edit + cash running balance
--
-3. ledger

@@ -14,6 +14,7 @@
 use App\Controllers\AuthController;
 use App\Controllers\HomeController;
 use App\Controllers\ProfileController;
+use App\Controllers\Ledger\LedgerController;
 use App\Controllers\Master\MasterController;
 use App\Controllers\Trx\TrxController;
 
@@ -45,3 +46,11 @@ $router->post('/trx/store',            [TrxController::class,    'store']   )->m
 $router->post('/trx/{id}/update',      [TrxController::class,    'update']  )->middleware('auth');
 $router->post('/trx/{id}/delete',      [TrxController::class,    'destroy'] )->middleware('auth');
 $router->post('/trx/{id}/reorder',     [TrxController::class,    'reorder'] )->middleware('auth');
+
+// ---------- Ledger module (read-only views over trx data) ----------
+// /ledger        — list of all masters with current balance + View link.
+// /ledger/{id}   — per-master ledger (live edit + delete via the shared
+//                  trx_edit_modal / trx_delete_modal partials and the
+//                  existing /trx/{id}/update + /trx/{id}/delete endpoints).
+$router->get( '/ledger',          [LedgerController::class, 'index'])->middleware('auth');
+$router->get( '/ledger/{id}',     [LedgerController::class, 'show'] )->middleware('auth');

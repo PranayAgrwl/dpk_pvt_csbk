@@ -7,7 +7,8 @@
  * Locals provided by TrxController::index():
  *   $rows       array<int,{id,master_id,master_name,master_station,
  *                          trx_date,trx_id,cr,dr,remark,running_balance}>
- *               — sorted by trx_id ASC; running_balance pre-computed.
+ *               — sorted by trx_id ASC; running_balance pre-computed
+ *               (cashbook cumulative SUM(dr-cr)).
  *   $masters    full master list (for the edit-modal combobox)
  *   $balances   { master_id => SUM(dr)-SUM(cr) per master }
  *
@@ -16,15 +17,19 @@
  *   - trx_id column has a drag handle (SortableJS): drop a row at position
  *     N → that row's trx_id becomes N and everything in the displaced
  *     window shifts accordingly. All via AJAX.
- *   - Edit button → modal pre-filled with master combobox + cr/dr + remark
- *     + current and updated balance (same UX as add). Save via AJAX.
- *   - Delete button → confirmation modal (matches Master delete pattern).
- *     Delete via AJAX; sequence renumbers automatically (−1 below).
+ *   - Edit button → modal (shared partial) pre-filled with master combobox
+ *     + cr/dr + remark + current/updated balance. Save via AJAX.
+ *   - Delete button → confirmation modal (shared partial). Delete via AJAX;
+ *     trx_id sequence renumbers automatically (−1 below).
  *
- * Security:
- *   - All cell contents pass through $e() (htmlspecialchars).
- *   - CSRF token included on every AJAX request (read from <meta>).
- *   - Server re-validates every mutation; never trust the client.
+ * Shared with /ledger/{id}:
+ *   - The edit + delete modal HTML lives in app/Views/partials/trx_*.php.
+ *   - The modal wiring (combobox, balance preview, AJAX) is shared in
+ *     public/assets/js/trx-row-actions.js (window.TrxRowActions).
+ *   - This page additionally wires SortableJS (drag-to-reorder), which
+ *     /ledger does NOT use.
+ *
+ * Security: CSRF token on every POST, server re-validates everything.
  * ------------------------------------------------------------
  */
 include APP_BASE . '/app/Views/partials/header.php';
@@ -79,215 +84,50 @@ $base = $url('/trx');
     </table>
 </div>
 
-
-<!-- ===== Edit modal (master combobox + cr/dr + remark + balances) ===== -->
-<div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalTitle" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-            <form id="editForm" autocomplete="off" novalidate>
-                <?= $csrfField ?>
-                <div class="modal-header">
-                    <div>
-                        <h5 class="modal-title mb-0" id="editModalTitle">Edit Transaction</h5>
-                        <div class="text-muted small mt-1">
-                            Trx&nbsp;# <span id="editTrxIdNum" class="fw-semibold text-body">—</span>
-                        </div>
-                    </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-
-                    <!-- Date — narrow column on its own row. -->
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-4">
-                            <label for="editTrxDate" class="form-label">Date</label>
-                            <input type="date"
-                                   class="form-control"
-                                   id="editTrxDate" name="trx_date"
-                                   required>
-                            <div class="invalid-feedback" id="editTrxDateErr"></div>
-                        </div>
-                    </div>
-
-                    <!-- Master combobox — full width, deserves the room. -->
-                    <div class="mb-3">
-                        <label for="editMasterInput" class="form-label">
-                            Master <span class="text-danger">*</span>
-                        </label>
-                        <div class="trx-combo position-relative">
-                            <input type="text"
-                                   class="form-control"
-                                   id="editMasterInput"
-                                   autocomplete="off"
-                                   spellcheck="false"
-                                   role="combobox"
-                                   aria-autocomplete="list"
-                                   aria-expanded="false"
-                                   aria-controls="editMasterList"
-                                   required>
-                            <input type="hidden" id="editMasterId" name="master_id">
-                            <ul id="editMasterList"
-                                class="trx-combo-list list-group position-absolute w-100 shadow-sm"
-                                role="listbox"
-                                hidden></ul>
-                            <div class="invalid-feedback d-block" id="editMasterErr"></div>
-                        </div>
-                        <div class="form-text">
-                            Start typing to filter &middot; Alt+&darr; for full list &middot; Enter to select
-                        </div>
-                    </div>
-
-                    <!-- Cr / Dr — side-by-side, equal columns (no balance crammed in). -->
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-6">
-                            <label for="editCr" class="form-label">Cr (Credit)</label>
-                            <input type="text"
-                                   class="form-control text-end"
-                                   id="editCr" name="cr"
-                                   inputmode="decimal" autocomplete="off"
-                                   placeholder="0.00">
-                            <div class="invalid-feedback" id="editCrErr"></div>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="editDr" class="form-label">Dr (Debit)</label>
-                            <input type="text"
-                                   class="form-control text-end"
-                                   id="editDr" name="dr"
-                                   inputmode="decimal" autocomplete="off"
-                                   placeholder="0.00">
-                            <div class="invalid-feedback" id="editDrErr"></div>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="editRemark" class="form-label">Remark</label>
-                        <input type="text"
-                               class="form-control"
-                               id="editRemark" name="remark"
-                               maxlength="255">
-                        <div class="invalid-feedback" id="editRemarkErr"></div>
-                    </div>
-
-                    <!-- Balance summary — visually separate from editable
-                         inputs so it's clear at a glance these are read-only. -->
-                    <div class="trx-balance-summary rounded p-3 d-flex justify-content-between align-items-center">
-                        <div>
-                            <div class="trx-balance-label">Current balance</div>
-                            <div class="trx-balance-value" id="editBalanceCurrent">—</div>
-                        </div>
-                        <div class="text-muted px-2 fs-5" aria-hidden="true">&rarr;</div>
-                        <div class="text-end">
-                            <div class="trx-balance-label">After save</div>
-                            <div class="trx-balance-value" id="editBalanceAfter">—</div>
-                        </div>
-                    </div>
-
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary" id="editSubmit">Save changes</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-
-<!-- ===== Delete confirmation modal ===== -->
-<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalTitle" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content">
-            <form id="deleteForm" novalidate>
-                <?= $csrfField ?>
-                <div class="modal-header">
-                    <h5 class="modal-title" id="deleteModalTitle">Delete transaction?</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p class="mb-0">
-                        Delete Trx&nbsp;# <strong id="deleteTrxId">—</strong>
-                        (<span id="deleteMaster" class="text-muted">—</span>)?
-                    </p>
-                    <p class="text-muted small mb-0 mt-2">
-                        Entries below will renumber automatically. This cannot be undone.
-                    </p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-danger" id="deleteSubmit">Delete</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+<!-- Edit + delete modal HTML — shared with /ledger/{id}. -->
+<?php include APP_BASE . '/app/Views/partials/trx_edit_modal.php'; ?>
+<?php include APP_BASE . '/app/Views/partials/trx_delete_modal.php'; ?>
 
 
 <!-- ===== Page JS =====
-     Loaded order (see footer.php): jQuery → Bootstrap → trx-combobox.js
-     → Sortable.min.js → app.js. By the time DOMContentLoaded fires, all
-     dependencies are ready. -->
+     Script load order (see footer.php): jQuery → Bootstrap → trx-combobox.js
+     → trx-row-actions.js → Sortable.min.js → app.js. All deps are ready by
+     DOMContentLoaded. The shared TrxRowActions class handles the edit + delete
+     modals; this page just owns state management, the table render and the
+     SortableJS drag-reorder (which is /trx-specific). -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     'use strict';
 
-    if (!window.jQuery || !window.bootstrap || !window.TrxCombobox || !window.Sortable) {
-        console.error('Trx index: missing dependency (jQuery / Bootstrap / TrxCombobox / Sortable).');
+    if (!window.jQuery || !window.bootstrap || !window.TrxRowActions || !window.Sortable) {
+        console.error('Trx index: missing dependency (jQuery / Bootstrap / TrxRowActions / Sortable).');
         return;
     }
     var $ = window.jQuery;
 
     // ---- data from PHP ------------------------------------------------------
-    var MASTERS  = <?= json_encode($masters,  JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
-    var INITIAL_ROWS     = <?= json_encode($rows, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
+    var MASTERS          = <?= json_encode($masters,  JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
+    var INITIAL_ROWS     = <?= json_encode($rows,     JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
     var INITIAL_BALANCES = <?= json_encode((object) $balances, JSON_UNESCAPED_SLASHES) ?>;
-    var BASE     = <?= json_encode($base, JSON_UNESCAPED_SLASHES) ?>;
-    var CSRF_TOKEN = $('meta[name="csrf-token"]').attr('content') || '';
-    var CSRF_NAME  = '_csrf';      // matches Csrf::fieldName() default
+    var BASE             = <?= json_encode($base, JSON_UNESCAPED_SLASHES) ?>;
+    var CSRF_TOKEN       = $('meta[name="csrf-token"]').attr('content') || '';
+    var CSRF_NAME        = '_csrf';
 
-    // Mutable application state — kept in sync after every AJAX round-trip.
+    // Mutable state — kept in sync after every AJAX round-trip.
     var state = {
-        rows:     INITIAL_ROWS.slice(),       // master copy, ASC by trx_id from server
+        rows:     INITIAL_ROWS.slice(),
         balances: $.extend({}, INITIAL_BALANCES)
     };
 
-    // ---- cached DOM refs ----------------------------------------------------
     var $tbody     = $('#trxTbody');
     var $tableWrap = $('#trxTableWrap');
     var $empty     = $('#trxEmpty');
 
-    // ---- formatting helpers -------------------------------------------------
-
-    function fmtMoney(n) {
-        if (n === null || n === undefined || isNaN(n)) return '';
-        var s = (Math.round(Number(n) * 100) / 100).toFixed(2);
-        var parts = s.split('.');
-        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-        return parts.join('.');
-    }
-
-    function sanitizeMoneyInput(raw) {
-        var s = String(raw).replace(/[^0-9.]/g, '');
-        var firstDot = s.indexOf('.');
-        if (firstDot !== -1) {
-            s = s.slice(0, firstDot + 1) + s.slice(firstDot + 1).replace(/\./g, '');
-            var intPart = s.slice(0, firstDot);
-            var decPart = s.slice(firstDot + 1, firstDot + 3);
-            s = decPart.length ? (intPart + '.' + decPart) : (intPart + '.');
-        }
-        return s;
-    }
-
-    function styleAmount($el, n) {
-        $el.removeClass('text-danger text-success fw-semibold');
-        if (n === null || n === undefined || isNaN(n) || Number(n) === 0) return;
-        if (Number(n) < 0)      $el.addClass('text-danger fw-semibold');
-        else                    $el.addClass('text-success fw-semibold');
-    }
-
-    function moneyCell(n) {
-        // Use HTML-escape via .text() inside a <td>, so just return raw text.
-        return n === null || n === undefined ? '' : fmtMoney(n);
-    }
+    // Re-use the shared formatters so the page and the modal print money
+    // exactly the same way.
+    var fmtMoney    = TrxRowActions.fmtMoney;
+    var styleAmount = TrxRowActions.styleAmount;
+    function moneyCell(n) { return n === null || n === undefined ? '' : fmtMoney(n); }
 
     // ---- table render -------------------------------------------------------
 
@@ -309,13 +149,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
         sorted.forEach(function (r) {
             var $tr = $('<tr>', {
-                'data-id':         r.id,
-                'data-trx-id':     r.trx_id,
-                'data-master-id':  r.master_id,
-                'data-master-name': r.master_name,
-                'data-cr':         r.cr === null ? '' : r.cr,
-                'data-dr':         r.dr === null ? '' : r.dr,
-                'data-remark':     r.remark || ''
+                'data-id':          r.id,
+                'data-trx-id':      r.trx_id,
+                'data-master-id':   r.master_id,
+                'data-master-name': r.master_name
             });
 
             // 1) trx_id with drag handle.
@@ -351,7 +188,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 $tr.append($('<td>').append($('<span>', { 'class': 'text-muted', text: '—' })));
             }
 
-            // 7) running balance (cash-book cumulative).
+            // 7) running balance (cashbook cumulative).
             var $bal = $('<td>', {
                 'class': 'text-end text-nowrap fw-semibold',
                 text: fmtMoney(r.running_balance)
@@ -361,55 +198,25 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // 8) actions.
             var $actions = $('<td>', { 'class': 'text-end text-nowrap' });
-            $actions.append(
-                $('<button>', {
-                    type: 'button',
-                    'class': 'btn btn-sm btn-outline-secondary me-1 trx-edit-btn',
-                    text: 'Edit'
-                })
-            );
-            $actions.append(
-                $('<button>', {
-                    type: 'button',
-                    'class': 'btn btn-sm btn-outline-danger trx-delete-btn',
-                    text: 'Delete'
-                })
-            );
+            $actions.append($('<button>', {
+                type: 'button',
+                'class': 'btn btn-sm btn-outline-secondary me-1 trx-edit-btn',
+                text: 'Edit'
+            }));
+            $actions.append($('<button>', {
+                type: 'button',
+                'class': 'btn btn-sm btn-outline-danger trx-delete-btn',
+                text: 'Delete'
+            }));
             $tr.append($actions);
 
             $tbody.append($tr);
         });
     }
 
-    // ---- AJAX wrapper -------------------------------------------------------
-
-    // Centralised so every POST is consistent (CSRF, headers, error toast).
-    function ajaxPost(path, data) {
-        var payload = $.extend({}, data || {});
-        payload[CSRF_NAME] = CSRF_TOKEN;
-
-        return $.ajax({
-            url:      BASE + path,
-            method:   'POST',
-            data:     payload,
-            dataType: 'json',
-            headers:  { 'X-Requested-With': 'XMLHttpRequest' }
-        });
-    }
-
-    // Apply a successful server payload to local state + redraw.
-    function applyPayload(payload) {
-        if (!payload || !payload.ok || !Array.isArray(payload.rows)) {
-            console.warn('Trx: malformed AJAX payload', payload);
-            return;
-        }
-        state.rows     = payload.rows;
-        state.balances = payload.balances || {};
-        renderTable();
-    }
+    // ---- shared error toast -------------------------------------------------
 
     function flashError(msg) {
-        // Re-use the global flash style (alert-dismissible) so styling is consistent.
         var $alert = $('<div>', {
             'class': 'alert alert-danger alert-dismissible fade show',
             role: 'alert'
@@ -417,265 +224,66 @@ document.addEventListener('DOMContentLoaded', function () {
             .text(msg || 'Something went wrong.')
             .append('<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>');
         $('main.container').prepend($alert);
-        // Auto-dismiss is suppressed for .alert-danger by app.js — fine here.
     }
 
-    // ---- drag-and-drop reorder (SortableJS) --------------------------------
+    // ---- edit + delete: delegated to the shared library --------------------
 
-    Sortable.create($tbody[0], {
-        handle:    '.drag-handle',
-        animation: 150,
-        ghostClass: 'trx-row-ghost',
-        chosenClass: 'trx-row-chosen',
-        dragClass:   'trx-row-drag',
-        onEnd: function (evt) {
-            if (evt.oldIndex === evt.newIndex) return;     // no-op
-
-            var $row     = $(evt.item);
-            var rowId    = parseInt($row.attr('data-id'), 10);
-            var total    = state.rows.length;
-            // Table is DESC: DOM index 0 = highest trx_id (= total).
-            // So new_trx_id = total − newDomIndex.
-            var newTrxId = total - evt.newIndex;
-
-            ajaxPost('/' + rowId + '/reorder', { new_trx_id: newTrxId })
-                .done(function (payload) {
-                    applyPayload(payload);
-                })
-                .fail(function (xhr) {
-                    flashError((xhr.responseJSON && xhr.responseJSON.message) || 'Reorder failed.');
-                    // Revert: re-render from server-of-record state to undo the drag.
-                    renderTable();
-                });
-        }
+    new TrxRowActions({
+        base:       BASE,
+        masters:    MASTERS,
+        getState:   function () { return state; },
+        onSuccess:  function (payload) {
+            if (!payload || !payload.ok || !Array.isArray(payload.rows)) return;
+            state.rows     = payload.rows;
+            state.balances = payload.balances || {};
+            renderTable();
+        },
+        flashError: flashError,
+        csrfToken:  CSRF_TOKEN,
+        csrfName:   CSRF_NAME
     });
 
-    // ---- edit modal: setup + state -----------------------------------------
+    // ---- drag-and-drop reorder (SortableJS) — /trx page only ---------------
 
-    var editModal = new bootstrap.Modal(document.getElementById('editModal'));
-    // Per-open editing context (used to compute baseline balance correctly
-    // when the master is changed mid-edit).
-    var editCtx = { id: 0, oldMasterId: 0, oldCr: 0, oldDr: 0 };
-
-    var editCombo = new TrxCombobox({
-        inputEl:  document.getElementById('editMasterInput'),
-        hiddenEl: document.getElementById('editMasterId'),
-        listEl:   document.getElementById('editMasterList'),
-        masters:  MASTERS,
-        onSelect: function (m) {
-            refreshEditBalances();
-        }
-    });
-
-    var $editCr        = $('#editCr');
-    var $editDr        = $('#editDr');
-    var $editBalCur    = $('#editBalanceCurrent');
-    var $editBalAfter  = $('#editBalanceAfter');
-
-    function selectedEditMasterId() {
-        return parseInt($('#editMasterId').val(), 10) || 0;
-    }
-
-    // Baseline = master balance EXCLUDING the row being edited.
-    // (Matches the meaning of "current balance" on the add form.)
-    function baselineForMaster(masterId) {
-        if (!masterId) return null;
-        var bal = state.balances.hasOwnProperty(masterId) ? Number(state.balances[masterId]) : 0;
-        if (masterId === editCtx.oldMasterId) {
-            // Take out THIS row's old contribution.
-            bal -= (Number(editCtx.oldDr) - Number(editCtx.oldCr));
-        }
-        return bal;
-    }
-
-    function refreshEditBalances() {
-        var mId = selectedEditMasterId();
-        var base = baselineForMaster(mId);
-
-        if (base === null) {
-            $editBalCur.text('—').removeClass('text-danger text-success');
-            $editBalAfter.text('—').removeClass('text-danger text-success');
-            return;
-        }
-        $editBalCur.text(fmtMoney(base));
-        styleAmount($editBalCur, base);
-
-        var cr = parseFloat($editCr.val()) || 0;
-        var dr = parseFloat($editDr.val()) || 0;
-        var after = base + dr - cr;
-        $editBalAfter.text(fmtMoney(after));
-        styleAmount($editBalAfter, after);
-    }
-
-    // Mutual exclusion for cr / dr — no disable. Both fields stay editable
-    // so the user can freely switch sides on an existing entry. The "inactive"
-    // side displays "0" as a visual indicator that it's unused; the second
-    // the user types a real (>0) value into the previously-inactive side,
-    // the other one is auto-zeroed.
-    function enforceCrDrExclusion(justChanged) {
-        var crNum = parseFloat($editCr.val()) || 0;
-        var drNum = parseFloat($editDr.val()) || 0;
-        if (justChanged === 'cr' && crNum > 0 && drNum !== 0) {
-            $editDr.val('0');
-        } else if (justChanged === 'dr' && drNum > 0 && crNum !== 0) {
-            $editCr.val('0');
-        }
-    }
-
-    // Auto-select on focus so the user can just type to replace the "0"
-    // (or any current value). Matches the "money field" UX in most apps.
-    $editCr.add($editDr).on('focus', function () {
-        var el = this;
-        // Defer so the cursor lands first, then the selection sticks.
-        setTimeout(function () { el.select(); }, 0);
-    });
-
-    $editCr.on('input', function () {
-        this.value = sanitizeMoneyInput(this.value);
-        enforceCrDrExclusion('cr');
-        refreshEditBalances();
-    });
-    $editDr.on('input', function () {
-        this.value = sanitizeMoneyInput(this.value);
-        enforceCrDrExclusion('dr');
-        refreshEditBalances();
-    });
-
-    // Reset all field-level error decorations / messages.
-    function clearEditErrors() {
-        $('#editForm .is-invalid').removeClass('is-invalid');
-        $('#editTrxDateErr,#editMasterErr,#editCrErr,#editDrErr,#editRemarkErr').text('');
-    }
-
-    function applyEditErrors(errors) {
-        clearEditErrors();
-        Object.keys(errors || {}).forEach(function (field) {
-            var msg = (errors[field] || []).join(' ');
-            if (field === 'trx_date') {
-                $('#editTrxDate').addClass('is-invalid');
-                $('#editTrxDateErr').text(msg);
-            } else if (field === 'master_id') {
-                $('#editMasterInput').addClass('is-invalid');
-                $('#editMasterErr').text(msg);
-            } else if (field === 'cr') {
-                $editCr.addClass('is-invalid');
-                $('#editCrErr').text(msg);
-            } else if (field === 'dr') {
-                $editDr.addClass('is-invalid');
-                $('#editDrErr').text(msg);
-            } else if (field === 'remark') {
-                $('#editRemark').addClass('is-invalid');
-                $('#editRemarkErr').text(msg);
-            }
+    function ajaxReorder(rowId, newTrxId) {
+        var payload = { new_trx_id: newTrxId };
+        payload[CSRF_NAME] = CSRF_TOKEN;
+        return $.ajax({
+            url:      BASE + '/' + rowId + '/reorder',
+            method:   'POST',
+            data:     payload,
+            dataType: 'json',
+            headers:  { 'X-Requested-With': 'XMLHttpRequest' }
         });
     }
 
-    // ---- edit modal: open + save -------------------------------------------
+    Sortable.create($tbody[0], {
+        handle:      '.drag-handle',
+        animation:   150,
+        ghostClass:  'trx-row-ghost',
+        chosenClass: 'trx-row-chosen',
+        dragClass:   'trx-row-drag',
+        onEnd: function (evt) {
+            if (evt.oldIndex === evt.newIndex) return;
 
-    // Open the edit modal for a given row id.
-    function openEditModal(rowId) {
-        var row = state.rows.find(function (r) { return r.id === rowId; });
-        if (!row) return;
+            var rowId = parseInt($(evt.item).attr('data-id'), 10);
+            var total = state.rows.length;
+            // Table is DESC, so DOM index 0 = highest trx_id (= total).
+            var newTrxId = total - evt.newIndex;
 
-        editCtx = {
-            id:          row.id,
-            oldMasterId: row.master_id,
-            oldCr:       row.cr === null ? 0 : Number(row.cr),
-            oldDr:       row.dr === null ? 0 : Number(row.dr)
-        };
-
-        $('#editTrxIdNum').text(row.trx_id);
-        $('#editTrxDate').val(row.trx_date);
-        editCombo.setValue(row.master_id);
-
-        // Bible: when an entry has dr=xyz, show cr as "0" (and vice versa)
-        // — explicit visual cue that the other side is empty.
-        $editCr.val(row.cr !== null ? row.cr : '0');
-        $editDr.val(row.dr !== null ? row.dr : '0');
-        $('#editRemark').val(row.remark || '');
-
-        clearEditErrors();
-        refreshEditBalances();
-
-        editModal.show();
-    }
-
-    // Delegated click handler — works against re-rendered rows.
-    $tbody.on('click', '.trx-edit-btn', function () {
-        var id = parseInt($(this).closest('tr').attr('data-id'), 10);
-        if (id) openEditModal(id);
-    });
-
-    // Convert "0" / "0.00" / blank into an empty string so the server
-    // (which keys on the empty string to detect "unused") still sees
-    // exactly ONE side as active.
-    function payloadAmount($field) {
-        var v = String($field.val()).trim();
-        var n = parseFloat(v);
-        return (v === '' || isNaN(n) || n === 0) ? '' : v;
-    }
-
-    $('#editForm').on('submit', function (ev) {
-        ev.preventDefault();
-        clearEditErrors();
-
-        var payload = {
-            trx_date:  $('#editTrxDate').val(),
-            master_id: $('#editMasterId').val(),
-            cr:        payloadAmount($editCr),
-            dr:        payloadAmount($editDr),
-            remark:    $('#editRemark').val()
-        };
-
-        var $btn = $('#editSubmit').prop('disabled', true).text('Saving…');
-
-        ajaxPost('/' + editCtx.id + '/update', payload)
-            .done(function (resp) {
-                applyPayload(resp);
-                editModal.hide();
-            })
-            .fail(function (xhr) {
-                var resp = xhr.responseJSON || {};
-                if (resp.errors) {
-                    applyEditErrors(resp.errors);
-                } else {
-                    flashError(resp.message || 'Update failed.');
-                }
-            })
-            .always(function () {
-                $btn.prop('disabled', false).text('Save changes');
-            });
-    });
-
-    // ---- delete modal: open + confirm --------------------------------------
-
-    var deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-    var deleteCtx = { id: 0 };
-
-    $tbody.on('click', '.trx-delete-btn', function () {
-        var $row = $(this).closest('tr');
-        deleteCtx.id = parseInt($row.attr('data-id'), 10);
-        $('#deleteTrxId').text($row.attr('data-trx-id'));
-        $('#deleteMaster').text($row.attr('data-master-name'));
-        deleteModal.show();
-    });
-
-    $('#deleteForm').on('submit', function (ev) {
-        ev.preventDefault();
-        var $btn = $('#deleteSubmit').prop('disabled', true).text('Deleting…');
-
-        ajaxPost('/' + deleteCtx.id + '/delete', {})
-            .done(function (resp) {
-                applyPayload(resp);
-                deleteModal.hide();
-            })
-            .fail(function (xhr) {
-                var resp = xhr.responseJSON || {};
-                flashError(resp.message || 'Delete failed.');
-            })
-            .always(function () {
-                $btn.prop('disabled', false).text('Delete');
-            });
+            ajaxReorder(rowId, newTrxId)
+                .done(function (resp) {
+                    if (resp && resp.ok && Array.isArray(resp.rows)) {
+                        state.rows     = resp.rows;
+                        state.balances = resp.balances || {};
+                        renderTable();
+                    }
+                })
+                .fail(function (xhr) {
+                    flashError((xhr.responseJSON && xhr.responseJSON.message) || 'Reorder failed.');
+                    renderTable();   // revert to last known good state
+                });
+        }
     });
 
     // ---- first paint --------------------------------------------------------

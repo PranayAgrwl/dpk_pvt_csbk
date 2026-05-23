@@ -51,6 +51,12 @@
                     <a class="nav-link text-white <?= $reqPath === '/trx' ? 'active fw-semibold' : '' ?>"
                        href="<?= $e($url('/trx')) ?>">Trx List</a>
                 </li>
+                <li class="nav-item">
+                    <!-- Ledger: master list + per-master ledgers. Prefix match
+                         so /ledger/{id} also stays active. -->
+                    <a class="nav-link text-white <?= $isActive('/ledger') ?>"
+                       href="<?= $e($url('/ledger')) ?>">Ledger</a>
+                </li>
             </ul>
 
             <ul class="navbar-nav ms-auto">

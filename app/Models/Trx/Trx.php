@@ -116,6 +116,41 @@ class Trx extends Model
     }
 
     /**
+     * Like listWithMaster() but scoped to ONE master — used by the per-master
+     * ledger page (/ledger/{master_id}).
+     *
+     * The `running_balance` here is the per-MASTER cumulative balance
+     * (SUM(dr - cr) across this master's rows in trx_id order), NOT the
+     * cashbook running balance. Rows are returned ASC by trx_id; the view
+     * is free to display in any order while keeping running_balance correct.
+     *
+     * @return array<int, array<string,mixed>>
+     */
+    public static function listForMaster(int $masterId): array
+    {
+        $rows = Database::queryAll(
+            "SELECT t.id, t.master_id, t.trx_date, t.trx_id,
+                    t.cr, t.dr, t.remark, t.created_at, t.updated_at,
+                    m.name    AS master_name,
+                    m.station AS master_station
+               FROM trx t
+               INNER JOIN master m ON m.id = t.master_id
+              WHERE t.master_id = ?
+              ORDER BY t.trx_id ASC, t.id ASC",
+            [$masterId]
+        );
+
+        $running = 0.0;
+        foreach ($rows as &$r) {
+            $running += (float) ($r['dr'] ?? 0) - (float) ($r['cr'] ?? 0);
+            $r['running_balance'] = $running;
+        }
+        unset($r);
+
+        return $rows;
+    }
+
+    /**
      * Update editable fields of an existing transaction.
      * Per bible (step 4): editable fields = trx_date, master_id, cr, dr, remark.
      * trx_id is NOT editable here — it moves via drag-reorder only.

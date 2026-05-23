@@ -1,0 +1,20 @@
+ledger page
+-
+list of all masters with their current balance
+1. #
+2. names (ascending)(with station in small)
+3. current party balance
+4. button to view complete ledger (in new master_wise_ledger)
+-
+new master_wise_ledeger page shows
+1. trx_id
+2. date
+3. dr
+4. cr
+5. edit button (live edit button - opens modal - updates saved and shown via ajax)
+6. delete button
+
+-
+thats it
+thank you
+feel free to ask anything - any question any doubt any query

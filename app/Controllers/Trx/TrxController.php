@@ -77,9 +77,12 @@ class TrxController extends Controller
             'masters'      => $mastersForJs,
             'balances'     => $balances,
             // Loaded by footer.php AFTER jQuery + Bootstrap; order matters:
-            // TrxCombobox first (no deps beyond jQuery), Sortable second.
+            //   trx-combobox.js   — base combobox class (jQuery only)
+            //   trx-row-actions.js — shared edit/delete wiring (needs combobox)
+            //   Sortable.min.js    — /trx-page only (drag-reorder)
             'extraScripts' => [
                 'js/trx-combobox.js',
+                'js/trx-row-actions.js',
                 'vendor/sortablejs/Sortable.min.js',
             ],
         ]);

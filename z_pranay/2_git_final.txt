@@ -1,0 +1,6 @@
+cd C:\xampp\htdocs\dpk_pvt_csbk
+git add .
+git commit -m "first commit"
+git push -u origin main
+
+timeout /t 7 & exit

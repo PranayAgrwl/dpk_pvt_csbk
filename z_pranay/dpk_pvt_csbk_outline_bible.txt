@@ -1,0 +1,73 @@
+dpk_pvt_csbk
+
+stands for - deepak private cashbook (it will be an accounting helping webapp)
+
+outline
+---
+php
+html
+css
+javascript
+mysql
+---
+download libraries - bootstrap & jquery (latest)(download not cdn)
+---
+MVC webapp
+separate components/partials (separate .php files) for (skeleton style)
+1. header
+2. footer
+3. navbar
+4. home page (sayinh hello world)
+5. error 404
+
+---
+proper foldering and naming
+---
+laravel style systematic routing
+---
+industry standard and robust
+--- 
+connect to mysql database
+---
+mysql database - using .sql file
+
+db name - db_dpk_pvt_csbk - created in mysql
+(
+    CREATE DATABASE IF NOT EXISTS db_dpk_pvt_csbk
+    CHARACTER SET utf8mb4
+    COLLATE utf8mb4_unicode_ci;
+)
+
+users
+
+id
+name
+username
+password
+created_at
+updated_at
+
+
+--------------------------
+(users using sessions)
+(enable middleware for all pages)
+login
+logout
+edit username/password
+
+- create one user in mysql table
+name -> p
+username -> admin
+password -> 321 (hashed)
+
+---
+use env file for critial and variable data
+---
+comment everything
+---
+use PDO instead of mysqli
+-
+protection
+- CSRF token  protection
+- protection from sql injection
+

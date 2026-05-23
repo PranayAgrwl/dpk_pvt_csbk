@@ -1,0 +1,35 @@
+/* ============================================================
+   app.css — site-wide custom styles (loaded after Bootstrap)
+   Keep this small; rely on Bootstrap utilities where possible.
+   ============================================================ */
+
+html, body {
+    min-height: 100%;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+main.container {
+    flex: 1 0 auto;
+}
+
+/* Subtle elevation for cards */
+.card {
+    border-radius: 0.75rem;
+}
+
+.navbar-brand {
+    letter-spacing: 0.3px;
+}
+
+/* Code-style usernames look nicer with a touch of contrast */
+code {
+    background: rgba(13, 110, 253, 0.08);
+    color: #0d6efd;
+    padding: 0.05rem 0.35rem;
+    border-radius: 0.25rem;
+}

@@ -1,0 +1,27 @@
+# =============================================================================
+# Root .htaccess
+# Forwards every request to /public, so only the "public" folder is web-exposed.
+# All application code (app/, config/, routes/, .env, etc.) stays out of the URL.
+# =============================================================================
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # If the request is for the public folder already, do nothing.
+    RewriteCond %{REQUEST_URI} ^/dpk_pvt_csbk/public/ [OR]
+    RewriteCond %{REQUEST_URI} ^/public/
+    RewriteRule ^ - [L]
+
+    # Otherwise, prepend /public to the request path.
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+# Deny direct access to any dotfile (.env, .htaccess, etc.)
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# Block access to common sensitive files just in case rewrite is disabled
+<FilesMatch "(?i)\.(env|sql|md|log|ini|sh|bak)$">
+    Require all denied
+</FilesMatch>

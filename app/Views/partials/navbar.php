@@ -21,10 +21,25 @@
             <span class="navbar-toggler-icon"></span>
         </button>
 
+        <?php
+            // Active-link highlighting: compare the current request path (with the
+            // install base like "/dpk_pvt_csbk" stripped) against each menu item.
+            $reqPath = '/' . trim(parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/', '/');
+            $installBase = rtrim(dirname(dirname($_SERVER['SCRIPT_NAME'] ?? '/')), '/');
+            if ($installBase !== '' && $installBase !== '/' && str_starts_with($reqPath, $installBase)) {
+                $reqPath = '/' . ltrim(substr($reqPath, strlen($installBase)), '/');
+            }
+            $isActive = static fn(string $prefix): string =>
+                ($prefix === '/' ? $reqPath === '/' : str_starts_with($reqPath, $prefix))
+                    ? 'active fw-semibold' : '';
+        ?>
         <div class="collapse navbar-collapse" id="mainNav">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                 <li class="nav-item">
-                    <a class="nav-link text-white" href="<?= $e($url('/')) ?>">Home</a>
+                    <a class="nav-link text-white <?= $isActive('/') ?>" href="<?= $e($url('/')) ?>">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link text-white <?= $isActive('/master') ?>" href="<?= $e($url('/master')) ?>">Master</a>
                 </li>
             </ul>
 

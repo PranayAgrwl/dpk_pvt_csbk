@@ -1,0 +1,16 @@
+trx
+-
+id (auto inc; not null)
+created_at
+updated_at
+master (id from master)
+cr (credit amount)(nullable)
+dr (debit amount)(nullable)
+trx_date (only date no time)
+trx_id (last trx_id + 1; not null)
+
+---
+(this is cash book thus no need for from account)
+(only 1 entry per entry no need for contra entry)
+
+(only one of 2 cr or dr possible)(other one stays null)

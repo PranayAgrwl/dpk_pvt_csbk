@@ -21,8 +21,9 @@ $passErrs = $errors['password'] ?? [];
 <div class="row justify-content-center">
     <div class="col-sm-10 col-md-8 col-lg-5">
         <div class="text-center mb-4">
-            <h1 class="h3 fw-bold mb-1"><?= $e($appName) ?></h1>
-            <p class="text-muted mb-0">Sign in to continue</p>
+            <!-- <h1 class="h3 fw-bold mb-1"><?= $e($appName) ?></h1> -->
+            <!-- <p class="text-muted mb-0">Sign in to continue</p> -->
+            <h1 class="text-muted mb-0">Sign in to continue</h1>
         </div>
 
         <div class="card shadow-sm border-0">
@@ -60,9 +61,6 @@ $passErrs = $errors['password'] ?? [];
             </div>
         </div>
 
-        <p class="text-center text-muted small mt-4 mb-0">
-            Default admin &mdash; <code>admin</code> / <code>321</code>
-        </p>
     </div>
 </div>
 

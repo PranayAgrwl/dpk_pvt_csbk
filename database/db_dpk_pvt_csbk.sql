@@ -28,6 +28,21 @@ CREATE TABLE IF NOT EXISTS `users` (
     UNIQUE KEY `uniq_users_username` (`username`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- master: clients (covers both customers and suppliers).
+-- Kept simple per the master bible: id, name, station, remark, timestamps.
+CREATE TABLE IF NOT EXISTS `master` (
+    `id`         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `name`       VARCHAR(255)    NOT NULL,
+    `station`    VARCHAR(255)    NULL,
+    `remark`     VARCHAR(255)    NULL,
+    `created_at` DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (`id`),
+    -- Non-unique index on name so we can lookup/list quickly later.
+    -- The bible explicitly allows duplicate names, so no UNIQUE constraint.
+    KEY `idx_master_name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ---- SEED --------------------------------------------------------------------
 -- Default admin user (per outline bible):
 --   name     : p

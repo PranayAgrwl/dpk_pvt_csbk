@@ -36,9 +36,9 @@ class View
      */
     public static function render(string $view, array $data = []): void
     {
-        $viewFile = APP_BASE . '/app/Views/' . str_replace('.', '/', $view) . '.php';
+        $viewFile = self::resolve($view);
 
-        if (!is_file($viewFile)) {
+        if ($viewFile === null) {
             Response::abort(500, "View not found: {$view}");
         }
 
@@ -60,6 +60,21 @@ class View
         ob_start();
         self::render($view, $data);
         return (string) ob_get_clean();
+    }
+
+    /**
+     * Resolve a view name to an absolute file path.
+     *
+     * All views live under app/Views/. Sub-features just nest in their own
+     * folder, e.g. "Master/index" → app/Views/Master/index.php, and
+     * "auth/login" → app/Views/auth/login.php.
+     *
+     * Returns the path if the file exists, or null otherwise.
+     */
+    private static function resolve(string $view): ?string
+    {
+        $path = APP_BASE . '/app/Views/' . str_replace('.', '/', $view) . '.php';
+        return is_file($path) ? $path : null;
     }
 
     /**

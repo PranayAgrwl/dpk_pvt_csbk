@@ -1,6 +1,7 @@
 cd C:\xampp\htdocs\dpk_pvt_csbk
 git add .
-git commit -m "first commit"
+git commit -m "master crud done"
+
 git push -u origin main
 
 timeout /t 7 & exit

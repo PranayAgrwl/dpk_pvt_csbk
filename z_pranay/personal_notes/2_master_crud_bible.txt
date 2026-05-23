@@ -1,0 +1,29 @@
+mysql table name:
+master
+-
+id (auto inc; not null)
+name (not null; varchar 255)
+station (nullable; varchar 255)
+remark (nullable; varchar 255)
+created_at (date time)(ist)
+updated_at (date time)(ist)
+
+---
+
+page for CRUD operation - extremely simple/minimalistic/short steps to get job done
+-
+page shows table of all entries (if none show no entry done yet)
+- at top button to add - which shows modal - to add - and after saving - update the page and show table again
+- and action button in table - beside each entry - edit (open modal - show previous data - update page) and delete (page update)
+
+(follow complete web app - schematics and page layout and looking and more)(simple and aesthetic tones nothing fancy)(same tools botostrap jquery)
+
+-
+save all entries in sql as uppercase (imp)
+-
+table display
+1. # (serial number)(not id)
+2. name (ascending)
+3. Station
+4. edit
+5. Delete

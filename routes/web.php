@@ -14,6 +14,7 @@
 use App\Controllers\AuthController;
 use App\Controllers\HomeController;
 use App\Controllers\ProfileController;
+use App\Controllers\Master\MasterController;
 
 /** @var \App\Core\Router $router */
 
@@ -27,3 +28,9 @@ $router->post('/logout',  [AuthController::class,    'logout'])->middleware('aut
 
 $router->get( '/profile', [ProfileController::class, 'edit']  )->middleware('auth');
 $router->post('/profile', [ProfileController::class, 'update'])->middleware('auth');
+
+// ---------- Master module (clients: customers & suppliers) ----------
+$router->get( '/master',               [MasterController::class, 'index']  )->middleware('auth');
+$router->post('/master/store',         [MasterController::class, 'store']  )->middleware('auth');
+$router->post('/master/{id}/update',   [MasterController::class, 'update'] )->middleware('auth');
+$router->post('/master/{id}/delete',   [MasterController::class, 'destroy'])->middleware('auth');

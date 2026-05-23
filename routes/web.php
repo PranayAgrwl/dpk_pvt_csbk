@@ -15,6 +15,7 @@ use App\Controllers\AuthController;
 use App\Controllers\HomeController;
 use App\Controllers\ProfileController;
 use App\Controllers\Master\MasterController;
+use App\Controllers\Trx\TrxController;
 
 /** @var \App\Core\Router $router */
 
@@ -34,3 +35,8 @@ $router->get( '/master',               [MasterController::class, 'index']  )->mi
 $router->post('/master/store',         [MasterController::class, 'store']  )->middleware('auth');
 $router->post('/master/{id}/update',   [MasterController::class, 'update'] )->middleware('auth');
 $router->post('/master/{id}/delete',   [MasterController::class, 'destroy'])->middleware('auth');
+
+// ---------- Trx module (cashbook transactions) — CREATE step ----------
+// (Read / update / delete routes will be added in the next step per the bible.)
+$router->get( '/trx/create',           [TrxController::class,    'create'] )->middleware('auth');
+$router->post('/trx/store',            [TrxController::class,    'store']  )->middleware('auth');

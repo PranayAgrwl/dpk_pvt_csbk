@@ -33,3 +33,27 @@ code {
     padding: 0.05rem 0.35rem;
     border-radius: 0.25rem;
 }
+
+/* ---- Trx page: MS-Access-style master combobox ----------------------
+   The list is absolutely positioned right below the input so it floats
+   over whatever sits beneath it without shifting the form. */
+.trx-combo-list {
+    z-index: 1050;            /* above Bootstrap form controls */
+    max-height: 280px;
+    overflow-y: auto;
+    margin-top: 2px;
+    background: #fff;
+}
+.trx-combo-list .list-group-item {
+    cursor: pointer;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.95rem;
+}
+.trx-combo-list .list-group-item.active {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    color: #fff;
+}
+.trx-combo-list .list-group-item.active .text-muted {
+    color: rgba(255, 255, 255, 0.85) !important;
+}

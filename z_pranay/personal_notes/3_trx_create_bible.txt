@@ -15,3 +15,41 @@ remark (nullable)
 (only 1 entry per entry no need for contra entry)
 
 (only one of 2 cr or dr possible)(other one stays null)
+
+(sort by trx id)
+
+--
+
+we make read update delete in next step
+
+--
+
+view
+
+1. trx date - show today date (editable)(cursor skips this as this is same most of the time)(date is both text editable and shows browser date selector dropdown)(no time)
+2. master (show master drop down)(auto focus here)
+(drop down style)
+- is like ms access style
+- show typed words
+- typed words can be back spaced
+- tr shows truffle and not strawberries
+- ascending order
+- show station beside (only visual cannot search from station)
+- alt down key shows all options
+- i can highlight using arrow keys
+- when i type tr and truffle is the first option it is highlighted - all rest options are still showed - just the first one is selected
+- when i press enter after a entry is highlighted - it is selected
+3. balance - show current balance after master is selected (is only for show and cursor cannot go here)
+4. cr
+5. dr (only one of the two can be selected)(they are money amounts and can hold up to 2 decimals)(no letters)
+6. show what balance would be if i save the trx (only show cursor cannot go here)
+7. remark - text remark - can enter anything
+
+---
+
+make sure the page is secure - and prevent sql injection and all that
+- follow web app system as of yet
+- comments
+- read complete rest of web app you have complete access here and read it all
+- bootstrap and jquery
+- also read all of my notes as well to better understand the style

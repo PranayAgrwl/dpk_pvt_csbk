@@ -41,6 +41,9 @@
                 <li class="nav-item">
                     <a class="nav-link text-white <?= $isActive('/master') ?>" href="<?= $e($url('/master')) ?>">Master</a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link text-white <?= $isActive('/trx') ?>" href="<?= $e($url('/trx/create')) ?>">New Trx</a>
+                </li>
             </ul>
 
             <ul class="navbar-nav ms-auto">

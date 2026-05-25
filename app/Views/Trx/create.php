@@ -98,7 +98,7 @@ if ($oldMaster !== '' && ctype_digit($oldMaster)) {
                                        class="form-control <?= $err('trx_date') ? 'is-invalid' : '' ?>"
                                        id="trxDate" name="trx_date"
                                        value="<?= $e($oldDate) ?>"
-                                       autofocus required>
+                                       required>
                                 <?php foreach ($err('trx_date') as $msg): ?>
                                     <div class="invalid-feedback"><?= $e($msg) ?></div>
                                 <?php endforeach; ?>
@@ -124,7 +124,7 @@ if ($oldMaster !== '' && ctype_digit($oldMaster)) {
                                            aria-autocomplete="list"
                                            aria-expanded="false"
                                            aria-controls="masterList"
-                                           required>
+                                           required autofocus>
                                     <input type="hidden"
                                            id="masterId" name="master_id"
                                            value="<?= $e($oldMaster) ?>">

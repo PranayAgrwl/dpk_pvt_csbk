@@ -41,7 +41,7 @@ $hasErrors  = !empty($errors) || !empty($old);
             class="btn btn-primary"
             data-bs-toggle="modal"
             data-bs-target="#masterModal"
-            data-mode="add">
+            data-mode="add" autofocus>
         <span aria-hidden="true">+</span> Add Entry
     </button>
 </div>

@@ -54,6 +54,25 @@ class Trx extends Model
     }
 
     /**
+     * Return the `trx_date` of the most recent voucher (the row with the
+     * highest `trx_id` — i.e. the last entry made in the cashbook sequence).
+     *
+     * Used by the New-Transaction form to pre-fill the date field with the
+     * last entry's date (most-common-case data entry: several rows on the
+     * same business date in a row).
+     *
+     * Returns the date as a `YYYY-MM-DD` string, or null when the trx table
+     * is still empty (first transaction ever).
+     */
+    public static function lastEntryDate(): ?string
+    {
+        $row = Database::queryOne(
+            "SELECT trx_date FROM trx ORDER BY trx_id DESC, id DESC LIMIT 1"
+        );
+        return $row === null ? null : (string) $row['trx_date'];
+    }
+
+    /**
      * Current balance for every master that has ever appeared in trx.
      * Formula (classic cashbook): SUM(dr) - SUM(cr)
      *   - dr (debit)  = receipts, money IN

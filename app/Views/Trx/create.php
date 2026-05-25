@@ -5,16 +5,18 @@
  * Cashbook — New Transaction form (CREATE step).
  *
  * Locals provided by TrxController::create():
- *   $masters    array<int,{id,name,station}>  — full master list (alphabetical)
- *   $balances   array<int,float>              — { master_id => current balance }
- *   $nextTrxId  int                           — preview of the trx_id we'll assign
- *   $todayDate  string                        — YYYY-MM-DD (server "today")
- *   $errors     validation errors (flashed after a failed POST)
- *   $old        old form values (flashed after a failed POST)
+ *   $masters      array<int,{id,name,station}>  — full master list (alphabetical)
+ *   $balances     array<int,float>              — { master_id => current balance }
+ *   $nextTrxId    int                           — preview of the trx_id we'll assign
+ *   $defaultDate  string                        — YYYY-MM-DD; the LAST trx's date,
+ *                                                 or today when the table is empty
+ *   $todayDate    string                        — YYYY-MM-DD (server "today"), kept for reference
+ *   $errors       validation errors (flashed after a failed POST)
+ *   $old          old form values (flashed after a failed POST)
  *
- * Field order (per the trx bible):
- *   1. trx_date    today by default; cursor skips it on tab (tabindex="-1")
- *   2. master      MS-Access-style combobox; autofocus; station shown beside
+ * Field order (per the trx bible + later UX tweaks):
+ *   1. trx_date    autofocused; defaults to last-trx date (same most of the time)
+ *   2. master      MS-Access-style combobox; station shown beside
  *   3. balance     read-only; populated when a master is picked
  *   4. cr          credit (one of cr/dr only)
  *   5. dr          debit
@@ -35,7 +37,8 @@ $err        = static fn(string $k): array => $errors[$k] ?? [];
 $hasErrors  = !empty($errors);
 
 // "Old" values: fall back to a sensible default per field.
-$oldDate    = (string) ($old['trx_date']  ?? $todayDate);
+// Date default = last trx's date (or today when the cashbook is empty).
+$oldDate    = (string) ($old['trx_date']  ?? $defaultDate);
 $oldMaster  = (string) ($old['master_id'] ?? '');
 $oldCr      = (string) ($old['cr']        ?? '');
 $oldDr      = (string) ($old['dr']        ?? '');
@@ -82,8 +85,12 @@ if ($oldMaster !== '' && ctype_digit($oldMaster)) {
                     <form id="trxForm" method="POST" action="<?= $e($base . '/store') ?>" autocomplete="off" novalidate>
                         <?= $csrfField ?>
 
-                        <!-- 1) Trx date — cursor skips this on TAB (tabindex="-1"),
-                                but it's still clickable + editable. -->
+                        <!-- 1) Trx date — first field on the page, autofocused,
+                                and part of the normal Tab sequence. Defaults to
+                                the date of the last voucher (most data entry has
+                                several rows on the same business date). The
+                                browser <input type="date"> also exposes the
+                                native calendar picker for changing the date. -->
                         <div class="row g-3 align-items-end mb-3">
                             <div class="col-md-4">
                                 <label for="trxDate" class="form-label">Date</label>
@@ -91,7 +98,7 @@ if ($oldMaster !== '' && ctype_digit($oldMaster)) {
                                        class="form-control <?= $err('trx_date') ? 'is-invalid' : '' ?>"
                                        id="trxDate" name="trx_date"
                                        value="<?= $e($oldDate) ?>"
-                                       tabindex="-1" required>
+                                       autofocus required>
                                 <?php foreach ($err('trx_date') as $msg): ?>
                                     <div class="invalid-feedback"><?= $e($msg) ?></div>
                                 <?php endforeach; ?>
@@ -117,7 +124,7 @@ if ($oldMaster !== '' && ctype_digit($oldMaster)) {
                                            aria-autocomplete="list"
                                            aria-expanded="false"
                                            aria-controls="masterList"
-                                           autofocus required>
+                                           required>
                                     <input type="hidden"
                                            id="masterId" name="master_id"
                                            value="<?= $e($oldMaster) ?>">
@@ -287,7 +294,19 @@ document.addEventListener('DOMContentLoaded', function () {
         onSelect: function (m) {
             refreshBalance();
             recomputeAfter();
-            if (m) $cr.trigger('focus');
+            if (m) {
+                // Defer the focus to the next tick so it runs AFTER the browser
+                // has finished any in-flight default action for the key that
+                // triggered the commit. Specifically: when the user commits
+                // via Tab, the combobox's keydown handler does NOT preventDefault
+                // (so Tab can still propagate). If we focused $cr synchronously
+                // here, the browser's Tab default would then run and move focus
+                // FROM $cr to the next tabbable ($dr) — effectively skipping Cr.
+                // setTimeout(0) makes the focus call land last, parking the
+                // cursor on Cr regardless of whether the commit came from
+                // Enter, Tab, or a mouse click.
+                setTimeout(function () { $cr.trigger('focus'); }, 0);
+            }
         }
     });
 

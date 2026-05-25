@@ -106,12 +106,20 @@ class TrxController extends Controller
             $masters
         );
 
+        // Default date for the form's Date field.
+        // Per UX request: pre-fill with the date of the LAST trx (most recent
+        // voucher) — typical data entry has several rows sharing the same
+        // business date, so this saves the user from retyping it. Falls back
+        // to today when the cashbook is still empty (very first transaction).
+        $defaultDate = Trx::lastEntryDate() ?? date('Y-m-d');
+
         $this->view('Trx/create', [
             'title'        => 'New Transaction',
             'masters'      => $mastersForJs,
             'balances'     => $balances,
             'nextTrxId'    => Trx::nextTrxId(),
-            'todayDate'    => date('Y-m-d'),
+            'defaultDate'  => $defaultDate,
+            'todayDate'    => date('Y-m-d'),  // kept for reference / future use
             'errors'       => Session::getFlash('errors', []),
             'old'          => Session::getFlash('old',    []),
             'extraScripts' => ['js/trx-combobox.js'],

@@ -129,6 +129,17 @@ document.addEventListener('DOMContentLoaded', function () {
     var styleAmount = TrxRowActions.styleAmount;
     function moneyCell(n) { return n === null || n === undefined ? '' : fmtMoney(n); }
 
+    // Render a YYYY-MM-DD string (the MySQL/JSON format) as DD/MM/YYYY for
+    // display in the table. The edit modal still uses the raw YYYY-MM-DD
+    // value because <input type="date"> expects that ISO format.
+    // Falls back to the raw string when the input doesn't look like a date
+    // (defensive — handles nulls, blanks, or already-formatted strings).
+    function fmtDate(s) {
+        if (!s) return '';
+        var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s));
+        return m ? (m[3] + '/' + m[2] + '/' + m[1]) : String(s);
+    }
+
     // ---- table render -------------------------------------------------------
 
     function renderTable() {
@@ -162,8 +173,9 @@ document.addEventListener('DOMContentLoaded', function () {
                     .append($('<span>', { 'class': 'fw-semibold text-body', text: r.trx_id }))
             );
 
-            // 2) trx_date.
-            $tr.append($('<td>', { 'class': 'small text-nowrap', text: r.trx_date }));
+            // 2) trx_date — displayed as DD/MM/YYYY (raw ISO value still goes
+            // to the edit modal via the row's data so the date <input> works).
+            $tr.append($('<td>', { 'class': 'small text-nowrap', text: fmtDate(r.trx_date) }));
 
             // 3) master — name (bold) + station (muted, beside).
             var $masterCell = $('<td>');

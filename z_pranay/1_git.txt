@@ -29,3 +29,4 @@ git commit -m "message here"
 - Push Your Code to GitHub
 git push -u origin main
 
+git reset --hard HEAD && git clean -fd

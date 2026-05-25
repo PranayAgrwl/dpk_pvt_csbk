@@ -145,6 +145,16 @@ document.addEventListener('DOMContentLoaded', function () {
     var styleAmount = TrxRowActions.styleAmount;
     function moneyCell(n) { return n === null || n === undefined ? '' : fmtMoney(n); }
 
+    // Render a YYYY-MM-DD string (the MySQL/JSON format) as DD/MM/YYYY for
+    // table display. Edit modal still uses raw ISO via row data (the date
+    // <input type="date"> needs that). Falls back to the raw string on
+    // anything that doesn't look like an ISO date.
+    function fmtDate(s) {
+        if (!s) return '';
+        var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s));
+        return m ? (m[3] + '/' + m[2] + '/' + m[1]) : String(s);
+    }
+
     // ---- header balance render ---------------------------------------------
 
     function updateHeader() {
@@ -184,8 +194,8 @@ document.addEventListener('DOMContentLoaded', function () {
             // 1) trx_id
             $tr.append($('<td>', { 'class': 'fw-semibold', text: r.trx_id }));
 
-            // 2) date
-            $tr.append($('<td>', { 'class': 'small text-nowrap', text: r.trx_date }));
+            // 2) date — displayed as DD/MM/YYYY (raw ISO stays on row data for the modal).
+            $tr.append($('<td>', { 'class': 'small text-nowrap', text: fmtDate(r.trx_date) }));
 
             // 3) dr
             $tr.append($('<td>', { 'class': 'text-end text-nowrap', text: moneyCell(r.dr) }));

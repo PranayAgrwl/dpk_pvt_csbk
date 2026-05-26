@@ -39,14 +39,20 @@ $fmtMoney = static function (float $n): string {
             All masters with their current balance &middot; click <span class="fw-semibold">View</span> for full history
         </p>
     </div>
-    <div>
-        <!-- Opens the FPDF summary in a new tab (Content-Disposition: inline,
-             so the browser's built-in PDF viewer displays it). Scoped to
-             "Regular" parties — masters whose station is empty/NULL. -->
+    <div class="d-flex gap-2">
+        <!-- Opens each FPDF summary in a new tab (Content-Disposition: inline,
+             so the browser's built-in PDF viewer displays it).
+             Regular = masters whose station is empty / NULL.
+             Local   = masters whose station is NOT empty (currently "LOCAL"). -->
         <a href="<?= $e($url('/ledger/print/regular')) ?>"
            target="_blank" rel="noopener"
            class="btn btn-outline-primary btn-sm">
             Print Regular
+        </a>
+        <a href="<?= $e($url('/ledger/print/local')) ?>"
+           target="_blank" rel="noopener"
+           class="btn btn-outline-primary btn-sm">
+            Print Local
         </a>
     </div>
 </div>

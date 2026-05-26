@@ -2,7 +2,7 @@
 /**
  * LedgerController
  * ------------------------------------------------------------
- * Read-only pages backed by the existing trx data + a PDF report:
+ * Read-only pages backed by the existing trx data + two PDF reports:
  *
  *   GET /ledger                   → index()        list of all masters with
  *                                                  current party balance + View.
@@ -13,11 +13,13 @@
  *   GET /ledger/print/regular     → printRegular() FPDF summary of every master
  *                                                  whose `station` is empty
  *                                                  (NULL / '' / whitespace).
- *                                                  Two sections (positive &
- *                                                  negative balances) plus a
- *                                                  grand total. Output is sent
- *                                                  inline so the browser opens
- *                                                  it in a new tab.
+ *   GET /ledger/print/local       → printLocal()   FPDF summary of every master
+ *                                                  whose `station` is NOT empty
+ *                                                  (currently the "LOCAL" set).
+ *
+ * Both PDF reports use the same layout (see app/Reports/Ledger/regular.php
+ * and local.php) — two sections (positive & negative balances) plus a grand
+ * total. Output is sent inline so the browser opens it in a new tab.
  *
  * The Edit + Delete flows reuse the existing /trx/{id}/update and
  * /trx/{id}/delete endpoints — no duplicate write paths. The shared
@@ -185,5 +187,62 @@ class LedgerController extends Controller
         // $grand, $generated) and ends with $pdf->Output(...) — so this
         // method has nothing to do after the require.
         require APP_BASE . '/app/Reports/Ledger/regular.php';
+    }
+
+    /**
+     * GET /ledger/print/local — FPDF summary of "Local" parties.
+     *
+     * Inverse of printRegular(): a master is "Local" when its `station` is
+     * NOT empty (i.e. any non-blank value, currently only "LOCAL"). The two
+     * reports together partition every master into exactly one section, so
+     * you can run both and the rows never overlap.
+     *
+     * Layout, sort order, and zero-balance handling are identical to the
+     * Regular report — see app/Reports/Ledger/local.php for the PDF and
+     * app/Reports/Ledger/regular.php for its twin.
+     */
+    public function printLocal(): void
+    {
+        // ---- 1) Gather the "Local" masters + their balances ------------------
+        $masters  = Master::all();              // sorted by name ASC server-side
+        $balances = Trx::balancesByMaster();    // { master_id => float }
+
+        // A master is "Local" when station is NOT empty/whitespace/NULL — the
+        // exact inverse of the printRegular() filter. Keep this in lock-step
+        // with that method so the two reports stay mutually exclusive.
+        $local = array_values(array_filter(
+            $masters,
+            static function (array $m): bool {
+                $s = $m['station'] ?? null;
+                if ($s === null) return false;
+                return trim((string) $s) !== '';
+            }
+        ));
+
+        // ---- 2) Bucket into positive / negative; drop zero balances ----------
+        $positives = [];
+        $negatives = [];
+        foreach ($local as $m) {
+            $bal = (float) ($balances[(int) $m['id']] ?? 0);
+            if ($bal > 0) {
+                $positives[] = ['name' => (string) $m['name'], 'balance' => $bal];
+            } elseif ($bal < 0) {
+                $negatives[] = ['name' => (string) $m['name'], 'balance' => $bal];
+            }
+        }
+
+        // Within each section: alphabetical by name (consistent with /ledger).
+        usort($positives, static fn(array $a, array $b): int => strcmp($a['name'], $b['name']));
+        usort($negatives, static fn(array $a, array $b): int => strcmp($a['name'], $b['name']));
+
+        $posSum = array_sum(array_column($positives, 'balance'));
+        $negSum = array_sum(array_column($negatives, 'balance'));
+        $grand  = $posSum + $negSum;
+
+        // Today's date in DD/MM/YYYY.
+        $generated = date('d/m/Y');
+
+        // ---- 3) Hand off to the report template ------------------------------
+        require APP_BASE . '/app/Reports/Ledger/local.php';
     }
 }

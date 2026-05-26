@@ -49,13 +49,15 @@ $router->post('/trx/{id}/reorder',     [TrxController::class,    'reorder'] )->m
 
 // ---------- Ledger module (read-only views over trx data) ----------
 // /ledger                  — list of all masters with current balance + View link.
-// /ledger/print/regular    — FPDF summary of "Regular" parties (no station).
-//                            Registered BEFORE the {id} route so it isn't
-//                            swallowed by the param matcher.
+// /ledger/print/regular    — FPDF summary of "Regular" parties (empty station).
+// /ledger/print/local      — FPDF summary of "Local"   parties (non-empty station).
+//                            Both print routes are registered BEFORE the {id}
+//                            route so they aren't swallowed by the param matcher.
 // /ledger/{id}             — per-master ledger (live edit + delete via the
 //                            shared trx_edit_modal / trx_delete_modal partials
 //                            and the existing /trx/{id}/update + /trx/{id}/delete
 //                            endpoints).
 $router->get( '/ledger',                  [LedgerController::class, 'index']       )->middleware('auth');
 $router->get( '/ledger/print/regular',    [LedgerController::class, 'printRegular'])->middleware('auth');
+$router->get( '/ledger/print/local',      [LedgerController::class, 'printLocal']  )->middleware('auth');
 $router->get( '/ledger/{id}',             [LedgerController::class, 'show']        )->middleware('auth');

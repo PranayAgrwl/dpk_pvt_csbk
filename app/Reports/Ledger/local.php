@@ -1,13 +1,18 @@
 <?php
 /**
- * Report: Regular Parties - Ledger Summary
+ * Report: Local Parties - Ledger Summary
  * ------------------------------------------------------------
  * THIS FILE IS THE PDF LAYOUT. Manipulate it freely — change fonts,
  * widths, spacing, add/remove sections. The controller (LedgerController)
  * only gathers data and `require`s this file; no rendering logic lives
  * over there.
  *
- * Locals provided by the caller (LedgerController::printRegular()):
+ * This is a twin of /app/Reports/Ledger/regular.php — same layout, same
+ * spec, only the title in Header() differs. Keep them in sync if you want
+ * the two reports to stay visually identical, or edit each independently
+ * to give them different looks.
+ *
+ * Locals provided by the caller (LedgerController::printLocal()):
  *   $positives   array<int, {name:string, balance:float}>   alphabetical
  *   $negatives   array<int, {name:string, balance:float}>   alphabetical
  *   $posSum      float                                       sum of positives
@@ -19,7 +24,7 @@
  *   - Margins: 7.5mm L / R / T
  *   - Font: Courier everywhere
  *   - No grey allowed — strictly black on white
- *   - Top-left:  "REGULAR PARTIES - LEDGER SUMMARY"   (Courier-B 12)
+ *   - Top-left:  "LOCAL PARTIES - LEDGER SUMMARY"     (Courier-B 12)
  *   - Top-right: "GENERATE: <today's date>"           (Courier-B 12)
  *   - Section heading: "POSITIVE BALANCE <count>"     (Courier-B 10)
  *   - Column header + body rows:                      (Courier 9)
@@ -53,8 +58,8 @@ $pdf = new class('P', 'mm', 'A4') extends \FPDF {
     {
         $this->SetFont('Courier', 'B', 12);
         // Page usable width = 195mm. Split: 130 (left) + 65 (right).
-        $this->Cell(130, 6, 'REGULAR PARTIES - LEDGER SUMMARY', 0, 0, 'L');
-        $this->Cell( 65, 6, 'GENERATE: ' . $this->generated,    0, 1, 'R');
+        $this->Cell(130, 6, 'LOCAL PARTIES - LEDGER SUMMARY', 0, 0, 'L');
+        $this->Cell( 65, 6, 'GENERATE: ' . $this->generated,  0, 1, 'R');
         $this->Ln(4);   // small breathing room before the body
     }
 
@@ -78,7 +83,7 @@ $pdf->SetAutoPageBreak(true, 12);   // leave 12mm at the bottom for the footer
 $pdf->AddPage();
 
 // ====================================================================
-//   2) Column widths (must sum to ≤ 195mm).
+//   2) Column widths (must sum to <= 195mm).
 // ====================================================================
 $colNum   = 7;       // "#" column
 $colName  = 160;     // "Name" column
@@ -129,7 +134,7 @@ $renderSection = static function (
         $pdf->SetFont('Courier', '', 9);
         $pdf->Cell(0, 5, '(none)', 0, 1, 'L');
     } else {
-        $pdf->SetFont('Courier', 'B', 9);
+        $pdf->SetFont('Courier', '', 9);
         $i = 0;
         foreach ($rows as $r) {
             $i++;
@@ -172,4 +177,4 @@ $pdf->Cell($colBal,   6, $fmt($grand), 0, 1, 'R');
 //      button uses target="_blank" so this lands in a new tab and the
 //      browser's PDF viewer renders it.
 // ====================================================================
-$pdf->Output('I', 'ledger-regular-' . date('Ymd') . '.pdf');
+$pdf->Output('I', 'ledger-local-' . date('Ymd') . '.pdf');

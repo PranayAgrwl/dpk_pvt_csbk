@@ -114,9 +114,9 @@ $renderSection = static function (
     \FPDF $pdf, string $title, array $rows, float $sum
 ) use ($fmt, $safe, $colNum, $colName, $colBal, $colLabel): void {
 
-    // ---- 4a) Section heading: "POSITIVE BALANCE <count>" (Courier-B 10)
+    // ---- 4a) Section heading: "POSITIVE BALANCE (<count>)" (Courier-B 10)
     $pdf->SetFont('Courier', 'B', 10);
-    $pdf->Cell(0, 6, $title . ' ' . count($rows), 0, 1, 'L');
+    $pdf->Cell(0, 6, $title . ' (' . count($rows) . ')', 0, 1, 'L');
 
     // ---- 4b) Column header row (Courier-B 9, bordered underline)
     $pdf->SetFont('Courier', 'B', 9);

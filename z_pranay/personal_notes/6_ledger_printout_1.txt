@@ -1,0 +1,38 @@
+in the ledger list (http://localhost/dpk_pvt_csbk/ledger); i want - a button on top; 
+
+printout regular
+
+--
+i have in my table 'master' - column 'station' - which has 2 values, empty or 'LOCAL'
+if it is empty
+
+then when i press button
+- i want it to generate a pdf printout of the ledger of the names which have station as empty '' NULL or ' '
+and show fpdf generated report in new page
+on top i want amount greater than 0 and then their sum and then a horizontal line and then amount less than zero and their total
+
+download fpdf library to generate pdfs
+
+do you understand
+feel free to ask any question for any query whatsoever thank you
+
+
+---
+skip zero balance
+you have complete context
+download and create following the project layout and tree style foldering
+
+---
+
+make a separate page for me to manipulate - which generates the fpdf pdf
+7.5mm margin left 7.5mm margin right 7.5mm margin top
+(courier font --- everywhere)(no colour grey allowed)
+top left ; REGULAR PARTIES - LEDGER SUMMARY (font 12)
+top right ; GENERATE: {only_today_date} (font 12)
+(now font 10)
+POSITIVE BALANCE {COUNT}
+(now font 9)
+# 7 width (left alighn)
+Name 160 width (left alighn)
+Amount 28 width (right alighn)
+- understand my tone and do same for everything - i will modify later if i have to thank you

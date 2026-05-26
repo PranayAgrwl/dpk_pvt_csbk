@@ -2,13 +2,22 @@
 /**
  * LedgerController
  * ------------------------------------------------------------
- * Two read-only pages backed by the existing trx data:
+ * Read-only pages backed by the existing trx data + a PDF report:
  *
- *   GET /ledger              → index()  list of all masters with their
- *                                       current party balance + "View" button.
- *   GET /ledger/{id}         → show()   per-master ledger
- *                                       (trx_id, date, dr, cr, running balance,
- *                                        edit, delete — all live via AJAX).
+ *   GET /ledger                   → index()        list of all masters with
+ *                                                  current party balance + View.
+ *   GET /ledger/{id}              → show()         per-master ledger
+ *                                                  (trx_id, date, dr, cr,
+ *                                                   running balance, edit, delete
+ *                                                   — all live via AJAX).
+ *   GET /ledger/print/regular     → printRegular() FPDF summary of every master
+ *                                                  whose `station` is empty
+ *                                                  (NULL / '' / whitespace).
+ *                                                  Two sections (positive &
+ *                                                  negative balances) plus a
+ *                                                  grand total. Output is sent
+ *                                                  inline so the browser opens
+ *                                                  it in a new tab.
  *
  * The Edit + Delete flows reuse the existing /trx/{id}/update and
  * /trx/{id}/delete endpoints — no duplicate write paths. The shared
@@ -109,5 +118,72 @@ class LedgerController extends Controller
                 'js/trx-row-actions.js',
             ],
         ]);
+    }
+
+    /**
+     * GET /ledger/print/regular — FPDF summary of "Regular" parties.
+     *
+     * A master is considered "Regular" when its `station` is NULL, empty,
+     * or whitespace-only (the master form normalises empty input to NULL,
+     * so in practice this matches every row that isn't an out-station like
+     * "LOCAL", "DELHI", etc.).
+     *
+     * This method only gathers the data and hands it off to the report
+     * template at `app/Reports/Ledger/regular.php`. That file owns the
+     * entire PDF layout (margins, fonts, colours, column widths, spacing)
+     * and is intended to be edited freely without touching this controller.
+     *
+     * Rows with a zero balance are intentionally skipped (per user request).
+     * Within each section rows are sorted alphabetically by master name,
+     * matching the order used on /ledger.
+     */
+    public function printRegular(): void
+    {
+        // ---- 1) Gather the "Regular" masters + their balances ----------------
+        $masters  = Master::all();              // sorted by name ASC server-side
+        $balances = Trx::balancesByMaster();    // { master_id => float }
+
+        // A master is "Regular" when station is NULL, '', or just whitespace.
+        // (The master form already trims + uppercases input and stores empty
+        // values as NULL, so in practice this is "everyone without a station".)
+        $regular = array_values(array_filter(
+            $masters,
+            static function (array $m): bool {
+                $s = $m['station'] ?? null;
+                if ($s === null) return true;
+                return trim((string) $s) === '';
+            }
+        ));
+
+        // ---- 2) Bucket into positive / negative; drop zero balances ----------
+        $positives = [];
+        $negatives = [];
+        foreach ($regular as $m) {
+            $bal = (float) ($balances[(int) $m['id']] ?? 0);
+            if ($bal > 0) {
+                $positives[] = ['name' => (string) $m['name'], 'balance' => $bal];
+            } elseif ($bal < 0) {
+                $negatives[] = ['name' => (string) $m['name'], 'balance' => $bal];
+            }
+        }
+
+        // Within each section: alphabetical by name (consistent with /ledger).
+        usort($positives, static fn(array $a, array $b): int => strcmp($a['name'], $b['name']));
+        usort($negatives, static fn(array $a, array $b): int => strcmp($a['name'], $b['name']));
+
+        $posSum = array_sum(array_column($positives, 'balance'));
+        $negSum = array_sum(array_column($negatives, 'balance'));
+        $grand  = $posSum + $negSum;
+
+        // Today's date in DD/MM/YYYY (matches the format used elsewhere in the app).
+        $generated = date('d/m/Y');
+
+        // ---- 3) Hand off to the report template ------------------------------
+        // The template is a plain PHP file (not a class) so the layout reads
+        // top-to-bottom and can be tweaked without OOP plumbing. It uses the
+        // locals defined above ($positives, $negatives, $posSum, $negSum,
+        // $grand, $generated) and ends with $pdf->Output(...) — so this
+        // method has nothing to do after the require.
+        require APP_BASE . '/app/Reports/Ledger/regular.php';
     }
 }

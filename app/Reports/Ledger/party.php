@@ -57,8 +57,9 @@ $pdf = new class('P', 'mm', 'A4') extends \FPDF {
     {
         // ---- Top banner: "PARTY LEDGER - <NAME>" (L) | "GENERATE: <date>" (R)
         $this->SetFont('Courier', 'B', 12);
-        $this->Cell(130, 6, 'PARTY LEDGER - ' . $this->partyName, 0, 0, 'L');
-        $this->Cell( 65, 6, 'GENERATE: ' . $this->generated,      0, 1, 'R');
+        $this->Cell(130, 6, 'PARTY LEDGER - ' . $this->partyName, 0, 1, 'L');
+        // $this->Cell(130, 6, 'PARTY LEDGER - ' . $this->partyName, 0, 0, 'L');
+        // $this->Cell( 65, 6, 'GENERATE: ' . $this->generated,      0, 1, 'R');
 
         // ---- Info line (Courier 9): station | balance | total trx count
         $this->SetFont('Courier', '', 9);
@@ -66,24 +67,25 @@ $pdf = new class('P', 'mm', 'A4') extends \FPDF {
         $info    = 'STATION: '          . $station
                  . '  |  CURRENT BALANCE: ' . $this->balanceStr
                  . '  |  TOTAL TRX: '       . $this->trxCount;
-        $this->Cell(0, 5, $info, 0, 1, 'L');
+        // $this->Cell(0, 5, $info, 0, 1, 'L');
         $this->Ln(2);
 
         // ---- Column headers (Courier-B 9, bordered underline)
         $this->SetFont('Courier', 'B', 9);
-        $this->Cell(10, 5, 'VNO',     'B', 0, 'L');
+        // $this->Cell(10, 5, 'VNO',     'B', 0, 'L');
         $this->Cell(22, 5, 'DATE',    'B', 0, 'L');
-        $this->Cell(65, 5, 'REMARK',  'B', 0, 'L');
-        $this->Cell(28, 5, 'DR',      'B', 0, 'R');
-        $this->Cell(28, 5, 'CR',      'B', 0, 'R');
-        $this->Cell(42, 5, 'BALANCE', 'B', 1, 'R');
+        $this->Cell(30, 5, 'CR',      'B', 0, 'R');
+        $this->Cell(30, 5, 'DR',      'B', 0, 'R');
+        $this->Cell(35, 5, 'BALANCE', 'B', 0, 'R');
+        $this->Cell(8, 5, '', 'B', 0, 'R');
+        $this->Cell(70, 5, 'REMARK',  'B', 1, 'L');
     }
 
     public function Footer(): void
     {
-        $this->SetY(-10);
-        $this->SetFont('Courier', 'B', 8);
-        $this->Cell(0, 6, 'Page ' . $this->PageNo() . ' / {nb}', 0, 0, 'C');
+        // $this->SetY(-10);
+        // $this->SetFont('Courier', 'B', 8);
+        // $this->Cell(0, 6, 'Page ' . $this->PageNo() . ' / {nb}', 0, 0, 'C');
     }
 };
 
@@ -101,11 +103,13 @@ $pdf->AddPage();
 //   2) Column widths (must match the values in Header() above).
 // ====================================================================
 $colVno  = 10;
+
 $colDate = 22;
-$colRmk  = 65;
-$colDr   = 28;
-$colCr   = 28;
-$colBal  = 42;
+$colCr   = 30;
+$colDr   = 30;
+$colBal  = 35;
+$colBlank  = 8;
+$colRmk  = 70;
 
 // ====================================================================
 //   3) Tiny helpers.
@@ -154,14 +158,15 @@ if (empty($rows)) {
     $pdf->SetFont('Courier', 'B', 9);
     $pdf->Cell(0, 5, '(no transactions for this party)', 0, 1, 'L');
 } else {
-    $pdf->SetFont('Courier', 'B', 9);
+    $pdf->SetFont('Courier', 'B', 11);
     foreach ($rows as $r) {
-        $pdf->Cell($colVno,  5, (string) (int) $r['trx_id'],          0, 0, 'L');
+        // $pdf->Cell($colVno,  5, (string) (int) $r['trx_id'],          0, 0, 'L');
         $pdf->Cell($colDate, 5, $fmtDate((string) $r['trx_date']),    0, 0, 'L');
-        $pdf->Cell($colRmk,  5, $safe($truncate((string) ($r['remark'] ?? ''))), 0, 0, 'L');
-        $pdf->Cell($colDr,   5, $fmtMoneyOrBlank($r['dr']),           0, 0, 'R');
         $pdf->Cell($colCr,   5, $fmtMoneyOrBlank($r['cr']),           0, 0, 'R');
-        $pdf->Cell($colBal,  5, $fmt((float) $r['running_balance']),  0, 1, 'R');
+        $pdf->Cell($colDr,   5, $fmtMoneyOrBlank($r['dr']),           0, 0, 'R');
+        $pdf->Cell($colBal,  5, $fmt((float) $r['running_balance']),  0, 0, 'R');
+        $pdf->Cell($colBlank,  5, '',  0, 0, 'R');
+        $pdf->Cell($colRmk,  5, $safe($truncate((string) ($r['remark'] ?? ''))), 0, 1, 'L');
     }
 }
 
@@ -171,11 +176,18 @@ if (empty($rows)) {
 if (!empty($rows)) {
     // ---- 5a) TOTAL row: sum of Dr + sum of Cr, with a top-border sum line
     //          drawn just under the Dr/Cr/Balance cells (classic ledger look).
-    $pdf->SetFont('Courier', 'B', 9);
-    $pdf->Cell($colVno + $colDate + $colRmk, 5, 'TOTAL',     0,   0, 'R');
-    $pdf->Cell($colDr,                       5, $fmt($sumDr), 'T', 0, 'R');
-    $pdf->Cell($colCr,                       5, $fmt($sumCr), 'T', 0, 'R');
-    $pdf->Cell($colBal,                      5, '',           'T', 1, 'R');
+    $pdf->Ln(2);
+    $pdf->SetDrawColor(0, 0, 0);
+    $pdf->SetLineWidth(0.3);
+    $y = $pdf->GetY();
+    $pdf->Line(7.5, $y, 202.5, $y);
+    $pdf->Ln(1);
+
+    $pdf->SetFont('Courier', 'B', 11);
+    $pdf->Cell($colDate, 5, 'TOTAL',     0,   0, 'R');
+    $pdf->Cell($colDr,                       5, $fmt($sumDr), 0, 0, 'R');
+    $pdf->Cell($colCr,                       5, $fmt($sumCr), 0, 0, 'R');
+    $pdf->Cell($colBal,                      5, $fmt($closing), 0, 1, 'R');
 
     // ---- 5b) CLOSING BALANCE — full-width black rule then the bold totals row.
     $pdf->Ln(2);
@@ -185,9 +197,9 @@ if (!empty($rows)) {
     $pdf->Line(7.5, $y, 202.5, $y);
     $pdf->Ln(1);
 
-    $pdf->SetFont('Courier', 'B', 10);
-    $pdf->Cell($colVno + $colDate + $colRmk + $colDr + $colCr, 6, 'CLOSING BALANCE', 0, 0, 'R');
-    $pdf->Cell($colBal,                                        6, $fmt($closing),    0, 1, 'R');
+    // $pdf->SetFont('Courier', 'B', 10);
+    // $pdf->Cell($colVno + $colDate + $colRmk + $colDr + $colCr, 6, 'CLOSING BALANCE', 0, 0, 'R');
+    // $pdf->Cell($colBal,                                        6, $fmt($closing),    0, 1, 'R');
 }
 
 // ====================================================================

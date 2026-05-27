@@ -1,0 +1,4 @@
+we want a party wise ledger printout - similar simple layout like ledger printout
+no fanacy colours
+ascending on vno
+fpdf -> in a separate file such that even i can edit it; thanks

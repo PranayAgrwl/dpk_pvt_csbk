@@ -46,10 +46,17 @@ $fmtMoney = static function (float $n): string {
 };
 ?>
 
-<!-- Header: back link + master card with current balance. -->
-<div class="mb-3">
+<!-- Header: back link (left) + "Print Ledger" button (right). -->
+<div class="mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
     <a href="<?= $e($url('/ledger')) ?>" class="text-decoration-none small">
         &larr; All ledgers
+    </a>
+    <!-- Opens the party-wise FPDF in a new tab. Same minimalist Courier
+         style as the /ledger/print/regular and /local printouts. -->
+    <a href="<?= $e($url('/ledger/' . (int) $master['id'] . '/print')) ?>"
+       target="_blank" rel="noopener"
+       class="btn btn-outline-primary btn-sm">
+        Print Ledger
     </a>
 </div>
 

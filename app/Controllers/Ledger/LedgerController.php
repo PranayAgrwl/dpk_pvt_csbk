@@ -2,7 +2,7 @@
 /**
  * LedgerController
  * ------------------------------------------------------------
- * Read-only pages backed by the existing trx data + two PDF reports:
+ * Read-only pages backed by the existing trx data + three PDF reports:
  *
  *   GET /ledger                   → index()        list of all masters with
  *                                                  current party balance + View.
@@ -16,10 +16,16 @@
  *   GET /ledger/print/local       → printLocal()   FPDF summary of every master
  *                                                  whose `station` is NOT empty
  *                                                  (currently the "LOCAL" set).
+ *   GET /ledger/{id}/print        → printParty()   FPDF party-wise ledger for
+ *                                                  ONE master — every trx row
+ *                                                  sorted ASC by vno (trx_id),
+ *                                                  with running balance, totals
+ *                                                  and closing balance.
  *
- * Both PDF reports use the same layout (see app/Reports/Ledger/regular.php
- * and local.php) — two sections (positive & negative balances) plus a grand
- * total. Output is sent inline so the browser opens it in a new tab.
+ * All PDF reports share the same minimalist visual spec (Courier, 7.5mm
+ * margins, black on white, no grey). Layout files live under app/Reports/
+ * Ledger/ and are intended to be hand-edited freely. Output is sent inline
+ * so the browser opens it in a new tab.
  *
  * The Edit + Delete flows reuse the existing /trx/{id}/update and
  * /trx/{id}/delete endpoints — no duplicate write paths. The shared
@@ -244,5 +250,51 @@ class LedgerController extends Controller
 
         // ---- 3) Hand off to the report template ------------------------------
         require APP_BASE . '/app/Reports/Ledger/local.php';
+    }
+
+    /**
+     * GET /ledger/{id}/print — FPDF party-wise ledger for ONE master.
+     *
+     * Renders every transaction belonging to this master sorted ascending
+     * by trx_id (= "vno" per the bible), with a running-balance column and
+     * a TOTAL + CLOSING BALANCE row at the bottom. 404s when the master
+     * doesn't exist.
+     *
+     * The PDF layout lives in app/Reports/Ledger/party.php and can be edited
+     * independently without touching this controller.
+     */
+    public function printParty(): void
+    {
+        $id     = (int) $this->request->param('id');
+        $master = Master::find($id);
+        if (!$master) {
+            Response::abort(404, 'Master not found.');
+        }
+
+        // Trx::listForMaster() already returns rows ordered ASC by trx_id and
+        // sets each row's `running_balance` (per-master cumulative SUM(dr-cr)
+        // walked top-to-bottom). That's exactly what the printout needs.
+        $rows = Trx::listForMaster($id);
+
+        // ---- Totals + closing balance ---------------------------------------
+        $sumDr = 0.0;
+        $sumCr = 0.0;
+        foreach ($rows as $r) {
+            $sumDr += (float) ($r['dr'] ?? 0);
+            $sumCr += (float) ($r['cr'] ?? 0);
+        }
+        // Closing balance = SUM(dr) - SUM(cr); also equals the last row's
+        // running_balance, so we have two sanity-checked sources for the same
+        // number. The subtraction form is the canonical one used app-wide.
+        $closing = $sumDr - $sumCr;
+
+        // ---- Locals expected by app/Reports/Ledger/party.php ----------------
+        $partyName     = (string) $master['name'];
+        $partyStation  = (string) ($master['station'] ?? '');
+        $partyBalance  = $closing;                              // same thing
+        $balanceStr    = number_format($partyBalance, 2, '.', ',');
+        $generated     = date('d/m/Y');
+
+        require APP_BASE . '/app/Reports/Ledger/party.php';
     }
 }

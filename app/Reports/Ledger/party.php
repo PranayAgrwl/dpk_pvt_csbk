@@ -118,12 +118,14 @@ $colRmk  = 70;
 // Money formatting: 1,234.56 (no currency symbol).
 $fmt = static fn(float $n): string => number_format($n, 2, '.', ',');
 
-// "" for null/zero, otherwise formatted money. Used so dr/cr columns show
-// blank when the row only has the other side filled.
+// Money cell for Dr/Cr columns. Per bible 8_party_wise_ledger_printout.txt:
+// "if value is zero; show 0; when value is empty" — i.e. always render a
+// number, never a blank. NULL / missing becomes 0.00 so empty Dr cells on a
+// Cr-only row (and vice versa) display "0.00" in the same format as the
+// populated cells. Kept the original variable name so any hand-edits below
+// don't need to change.
 $fmtMoneyOrBlank = static function ($n) use ($fmt): string {
-    if ($n === null) return '';
-    $f = (float) $n;
-    return $f == 0.0 ? '' : $fmt($f);
+    return $fmt($n === null ? 0.0 : (float) $n);
 };
 
 // FPDF core fonts only support cp1252 — defensive convert.

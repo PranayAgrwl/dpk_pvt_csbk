@@ -126,7 +126,7 @@ $renderSection = static function (
 
     // ---- 4c) Body
     if (empty($rows)) {
-        $pdf->SetFont('Courier', '', 9);
+        $pdf->SetFont('Courier', 'B', 9);
         $pdf->Cell(0, 5, '(none)', 0, 1, 'L');
     } else {
         $pdf->SetFont('Courier', 'B', 9);

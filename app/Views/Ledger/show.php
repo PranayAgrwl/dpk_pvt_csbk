@@ -81,7 +81,7 @@ $fmtMoney = static function (float $n): string {
     </div>
 </div>
 
-<!-- Ledger table (sorted DESC by trx_id, newest at top). -->
+<!-- Ledger table (sorted ASC by trx_id, oldest at top). -->
 <div id="ledgerTableWrap" class="table-responsive shadow-sm rounded bg-white" <?= empty($rows) ? 'hidden' : '' ?>>
     <table class="table table-hover align-middle mb-0">
         <thead class="table-light">
@@ -168,9 +168,11 @@ document.addEventListener('DOMContentLoaded', function () {
     // ---- table render -------------------------------------------------------
 
     function renderTable() {
-        // Display DESC by trx_id (newest at top, matches /trx).
+        // Display ASC by trx_id (oldest at top). Note: this also matches the
+        // natural order in which `running_balance` was computed server-side,
+        // so the balance column reads top-to-bottom as a running total.
         var sorted = state.rows.slice().sort(function (a, b) {
-            return b.trx_id - a.trx_id;
+            return a.trx_id - b.trx_id;
         });
 
         $tbody.empty();

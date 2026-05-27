@@ -1,0 +1,6 @@
+we do otp verification on login
+not actual otp sent but dummy otp sent and we use 6 digit code we hardcode in env file to be used as otp
+-
+for extra security (this website is only for personal use)
+-
+can also do very easily - real otp on papa email
